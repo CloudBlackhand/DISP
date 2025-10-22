@@ -18,7 +18,11 @@ const upload = multer({ dest: 'uploads/' });
 
 // Configuração da API WAHA
 const WAHA_API_URL = process.env.WAHA_API_URL || 'http://localhost:3000';
-const WAHA_BASE_URL = process.env.WAHA_BASE_URL || process.env.WAHA_API_URL || 'http://localhost:3000';
+let WAHA_BASE_URL = process.env.WAHA_BASE_URL || process.env.WAHA_API_URL || 'http://localhost:3000';
+// Remover barra final se existir para evitar duplo slash
+if (WAHA_BASE_URL.endsWith('/')) {
+  WAHA_BASE_URL = WAHA_BASE_URL.slice(0, -1);
+}
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
 
