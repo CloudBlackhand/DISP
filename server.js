@@ -57,7 +57,11 @@ function getAuthHeadersWithAuth() {
 // Função para enviar mensagem via WAHA
 async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
   try {
-    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${session}/send-message`, {
+    const url = `${WAHA_BASE_URL}/api/sessions/${session}/send-message`;
+    console.log(`📤 Enviando mensagem para: ${url}`);
+    console.log(`📱 Telefone: ${phone}, Mensagem: ${message.substring(0, 50)}...`);
+    
+    const response = await axios.post(url, {
       to: phone,
       body: message
     }, {
@@ -65,6 +69,8 @@ async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
     });
     return { success: true, data: response.data };
   } catch (error) {
+    console.error(`❌ Erro ao enviar mensagem:`, error.message);
+    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sessions/${session}/send-message`);
     return { 
       success: false, 
       error: error.response?.data?.message || error.message 
@@ -240,6 +246,18 @@ app.get('/api/status', async (req, res) => {
 app.get('/api/session-status', async (req, res) => {
   const result = await checkSessionStatus();
   res.json(result);
+});
+
+// Rota para debug das variáveis
+app.get('/api/debug', (req, res) => {
+  res.json({
+    WAHA_BASE_URL,
+    WAHA_API_KEY: WAHA_API_KEY ? 'Configurado' : 'Não configurado',
+    WAHA_SESSION_NAME,
+    WAHA_USERNAME,
+    WAHA_PASSWORD,
+    headers: getAuthHeadersWithAuth()
+  });
 });
 
 // Rota para testar autenticação
@@ -424,8 +442,13 @@ app.post('/webhook/waha', async (req, res) => {
 app.post('/api/setup-webhook', async (req, res) => {
   try {
     const webhookUrl = `${req.protocol}://${req.get('host')}/webhook/waha`;
+    const wahaUrl = `${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`;
     
-    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`, {
+    console.log(`🔗 Configurando webhook:`);
+    console.log(`   Webhook URL: ${webhookUrl}`);
+    console.log(`   WAHA URL: ${wahaUrl}`);
+    
+    const response = await axios.post(wahaUrl, {
       url: webhookUrl,
       events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
     }, {
@@ -438,6 +461,8 @@ app.post('/api/setup-webhook', async (req, res) => {
       data: response.data 
     });
   } catch (error) {
+    console.error(`❌ Erro ao configurar webhook:`, error.message);
+    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`);
     res.json({ 
       success: false, 
       error: error.response?.data?.message || error.message 

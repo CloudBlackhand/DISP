@@ -215,6 +215,9 @@
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button class="btn" onclick="testAuth()" style="flex: 1;">Testar Autenticação</button>
+                    <button class="btn" onclick="debugConfig()" style="flex: 1;">Debug Config</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button class="btn" onclick="startSession()" style="flex: 1;">Iniciar Sessão</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -349,6 +352,33 @@
                     statusDiv.className = 'status error';
                     statusDiv.textContent = `❌ Erro: ${data.error}`;
                 }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Debug da configuração
+        async function debugConfig() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Carregando configuração...';
+
+            try {
+                const response = await fetch('/api/debug');
+                const data = await response.json();
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>🔧 Configuração Atual:</strong><br>
+                    WAHA_BASE_URL: ${data.WAHA_BASE_URL}<br>
+                    WAHA_API_KEY: ${data.WAHA_API_KEY}<br>
+                    WAHA_SESSION_NAME: ${data.WAHA_SESSION_NAME}<br>
+                    WAHA_USERNAME: ${data.WAHA_USERNAME}<br>
+                    WAHA_PASSWORD: ${data.WAHA_PASSWORD}<br>
+                    Headers: ${JSON.stringify(data.headers)}
+                `;
             } catch (error) {
                 statusDiv.className = 'status error';
                 statusDiv.textContent = `❌ Erro: ${error.message}`;
