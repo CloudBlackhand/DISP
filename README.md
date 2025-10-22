@@ -28,8 +28,7 @@ WAHA_API_KEY=test-api-key-123
 WAHA_API_URL=https://wahawa-production-a473.up.railway.app
 WAHA_BASE_URL=https://wahawa-production-a473.up.railway.app/
 WAHA_SESSION_NAME=Diego
-SYSTEM_USERNAME=Diego
-SYSTEM_PASSWORD=Diego123
+SYSTEM_PASSWORD=admin123
 PORT=3000
 ```
 
@@ -41,7 +40,9 @@ PORT=3000
 
 ## 📱 Como Usar
 
-1. **Login**: Use as credenciais configuradas (padrão: Diego/Diego123)
+1. **Acessar o Sistema**: 
+   - Usuário: `admin`
+   - Senha: valor da variável `SYSTEM_PASSWORD` (padrão: `admin123`)
 2. **Configurar Sessão**: 
    - Clique em "Iniciar Sessão" para conectar com o WAHA
    - Clique em "Configurar Webhook" para receber notificações

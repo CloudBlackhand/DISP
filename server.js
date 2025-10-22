@@ -12,19 +12,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Middleware de autenticação simples
+// Middleware de autenticação
 function requireAuth(req, res, next) {
-  const auth = req.headers.authorization;
+  const authHeader = req.headers.authorization;
   
-  if (!auth || !auth.startsWith('Basic ')) {
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="DISPIDI"');
     return res.status(401).json({ error: 'Autenticação necessária' });
   }
   
-  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+  const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('ascii');
   const [username, password] = credentials.split(':');
   
-  if (username === SYSTEM_USERNAME && password === SYSTEM_PASSWORD) {
+  if (username === 'admin' && password === SYSTEM_PASSWORD) {
     next();
   } else {
     res.setHeader('WWW-Authenticate', 'Basic realm="DISPIDI"');
@@ -32,13 +32,9 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Aplicar autenticação em todas as rotas exceto login
-app.use((req, res, next) => {
-  if (req.path === '/login' || req.path === '/') {
-    return next();
-  }
-  return requireAuth(req, res, next);
-});
+// Aplicar autenticação em todas as rotas da API
+app.use('/api', requireAuth);
+app.use('/webhook', requireAuth);
 
 app.use(express.static('public'));
 
@@ -58,8 +54,7 @@ const WAHA_USERNAME = process.env.WAHA_USERNAME || 'admin';
 const WAHA_PASSWORD = process.env.WAHA_PASSWORD || 'admin123';
 
 // Configuração de autenticação do sistema
-const SYSTEM_USERNAME = process.env.SYSTEM_USERNAME || 'Diego';
-const SYSTEM_PASSWORD = process.env.SYSTEM_PASSWORD || 'Diego123';
+const SYSTEM_PASSWORD = process.env.SYSTEM_PASSWORD || 'admin123';
 
 // Função para gerar headers de autenticação
 function getAuthHeaders() {
@@ -282,148 +277,6 @@ app.get('/api/session-status', async (req, res) => {
   res.json(result);
 });
 
-
-// Rota para testar autenticação
-app.get('/api/test-auth', async (req, res) => {
-  try {
-    console.log('🔑 Testando autenticação...');
-    console.log('WAHA_API_KEY:', WAHA_API_KEY ? 'Definido' : 'Não definido');
-    console.log('WAHA_USERNAME:', WAHA_USERNAME);
-    console.log('WAHA_BASE_URL:', WAHA_BASE_URL);
-    
-    const results = {
-      url: WAHA_BASE_URL,
-      bearerToken: WAHA_API_KEY ? 'Configurado' : 'Não configurado',
-      basicAuth: `${WAHA_USERNAME}:${WAHA_PASSWORD}`,
-      tests: []
-    };
-    
-    // Testar sem autenticação primeiro
-    try {
-      const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-        timeout: 5000
-      });
-      results.tests.push({
-        type: 'Sem autenticação',
-        status: 'Sucesso',
-        data: response.data
-      });
-      res.json({ 
-        success: true, 
-        authType: 'Sem autenticação necessária',
-        data: response.data,
-        results
-      });
-      return;
-    } catch (noAuthError) {
-      results.tests.push({
-        type: 'Sem autenticação',
-        status: `Falhou: ${noAuthError.response?.status || noAuthError.message}`
-      });
-    }
-    
-    // Testar com Bearer token
-    if (WAHA_API_KEY) {
-      try {
-        const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-          headers: {
-            'Authorization': `Bearer ${WAHA_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 5000
-        });
-        results.tests.push({
-          type: 'Bearer Token',
-          status: 'Sucesso',
-          data: response.data
-        });
-        res.json({ 
-          success: true, 
-          authType: 'Bearer Token',
-          data: response.data,
-          results
-        });
-        return;
-      } catch (bearerError) {
-        results.tests.push({
-          type: 'Bearer Token',
-          status: `Falhou: ${bearerError.response?.status} - ${bearerError.response?.data?.message || bearerError.message}`
-        });
-        console.log('❌ Bearer token falhou:', bearerError.response?.status, bearerError.response?.data);
-      }
-    }
-    
-    // Testar com Basic auth
-    try {
-      const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
-      const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 5000
-      });
-      results.tests.push({
-        type: 'Basic Auth',
-        status: 'Sucesso',
-        data: response.data
-      });
-      res.json({ 
-        success: true, 
-        authType: 'Basic Auth',
-        data: response.data,
-        results
-      });
-    } catch (basicError) {
-      results.tests.push({
-        type: 'Basic Auth',
-        status: `Falhou: ${basicError.response?.status} - ${basicError.response?.data?.message || basicError.message}`
-      });
-      console.log('❌ Basic auth falhou:', basicError.response?.status, basicError.response?.data);
-    }
-    
-    // Testar com X-API-Key header
-    if (WAHA_API_KEY) {
-      try {
-        const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-          headers: {
-            'X-API-Key': WAHA_API_KEY,
-            'Content-Type': 'application/json'
-          },
-          timeout: 5000
-        });
-        results.tests.push({
-          type: 'X-API-Key Header',
-          status: 'Sucesso',
-          data: response.data
-        });
-        res.json({ 
-          success: true, 
-          authType: 'X-API-Key Header',
-          data: response.data,
-          results
-        });
-        return;
-      } catch (apiKeyError) {
-        results.tests.push({
-          type: 'X-API-Key Header',
-          status: `Falhou: ${apiKeyError.response?.status} - ${apiKeyError.response?.data?.message || apiKeyError.message}`
-        });
-      }
-    }
-    
-    res.json({ 
-      success: false, 
-      error: 'Todos os tipos de autenticação falharam',
-      results
-    });
-  } catch (error) {
-    res.json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
 
 // Webhook para receber notificações do WAHA
 app.post('/webhook/waha', async (req, res) => {
