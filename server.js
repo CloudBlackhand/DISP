@@ -30,19 +30,36 @@ const WAHA_PASSWORD = process.env.WAHA_PASSWORD || 'admin123';
 
 // Função para gerar headers de autenticação
 function getAuthHeaders() {
-  // Tentar Bearer token primeiro, depois Basic auth
+  // Por padrão, tentar sem autenticação primeiro
+  return {
+    'Content-Type': 'application/json'
+  };
+}
+
+// Função para gerar headers com autenticação específica
+function getAuthHeadersWithAuth() {
+  // Tentar Bearer token primeiro
   if (WAHA_API_KEY) {
     return {
       'Authorization': `Bearer ${WAHA_API_KEY}`,
       'Content-Type': 'application/json'
     };
-  } else {
-    const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
+  }
+  
+  // Tentar X-API-Key header
+  if (WAHA_API_KEY) {
     return {
-      'Authorization': `Basic ${auth}`,
+      'X-API-Key': WAHA_API_KEY,
       'Content-Type': 'application/json'
     };
   }
+  
+  // Fallback para Basic auth
+  const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
+  return {
+    'Authorization': `Basic ${auth}`,
+    'Content-Type': 'application/json'
+  };
 }
 
 // Função para enviar mensagem via WAHA
@@ -66,9 +83,20 @@ async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
 // Função para verificar status da sessão
 async function checkSessionStatus(session = WAHA_SESSION_NAME) {
   try {
-    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
-      headers: getAuthHeaders()
-    });
+    // Tentar sem autenticação primeiro
+    let response;
+    try {
+      response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
+        headers: getAuthHeaders(),
+        timeout: 5000
+      });
+    } catch (noAuthError) {
+      // Se falhar, tentar com autenticação
+      response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
+        headers: getAuthHeadersWithAuth(),
+        timeout: 5000
+      });
+    }
     return { success: true, data: response.data };
   } catch (error) {
     return { 
@@ -230,6 +258,37 @@ app.get('/api/test-auth', async (req, res) => {
     console.log('WAHA_USERNAME:', WAHA_USERNAME);
     console.log('WAHA_BASE_URL:', WAHA_BASE_URL);
     
+    const results = {
+      url: WAHA_BASE_URL,
+      bearerToken: WAHA_API_KEY ? 'Configurado' : 'Não configurado',
+      basicAuth: `${WAHA_USERNAME}:${WAHA_PASSWORD}`,
+      tests: []
+    };
+    
+    // Testar sem autenticação primeiro
+    try {
+      const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
+        timeout: 5000
+      });
+      results.tests.push({
+        type: 'Sem autenticação',
+        status: 'Sucesso',
+        data: response.data
+      });
+      res.json({ 
+        success: true, 
+        authType: 'Sem autenticação necessária',
+        data: response.data,
+        results
+      });
+      return;
+    } catch (noAuthError) {
+      results.tests.push({
+        type: 'Sem autenticação',
+        status: `Falhou: ${noAuthError.response?.status || noAuthError.message}`
+      });
+    }
+    
     // Testar com Bearer token
     if (WAHA_API_KEY) {
       try {
@@ -237,16 +296,27 @@ app.get('/api/test-auth', async (req, res) => {
           headers: {
             'Authorization': `Bearer ${WAHA_API_KEY}`,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 5000
+        });
+        results.tests.push({
+          type: 'Bearer Token',
+          status: 'Sucesso',
+          data: response.data
         });
         res.json({ 
           success: true, 
           authType: 'Bearer Token',
-          data: response.data 
+          data: response.data,
+          results
         });
         return;
       } catch (bearerError) {
-        console.log('❌ Bearer token falhou:', bearerError.response?.status);
+        results.tests.push({
+          type: 'Bearer Token',
+          status: `Falhou: ${bearerError.response?.status} - ${bearerError.response?.data?.message || bearerError.message}`
+        });
+        console.log('❌ Bearer token falhou:', bearerError.response?.status, bearerError.response?.data);
       }
     }
     
@@ -257,21 +327,63 @@ app.get('/api/test-auth', async (req, res) => {
         headers: {
           'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 5000
+      });
+      results.tests.push({
+        type: 'Basic Auth',
+        status: 'Sucesso',
+        data: response.data
       });
       res.json({ 
         success: true, 
         authType: 'Basic Auth',
-        data: response.data 
+        data: response.data,
+        results
       });
     } catch (basicError) {
-      res.json({ 
-        success: false, 
-        error: 'Ambos os tipos de autenticação falharam',
-        bearerError: WAHA_API_KEY ? 'Bearer token falhou' : 'Bearer token não configurado',
-        basicError: `Basic auth falhou: ${basicError.response?.status}`
+      results.tests.push({
+        type: 'Basic Auth',
+        status: `Falhou: ${basicError.response?.status} - ${basicError.response?.data?.message || basicError.message}`
       });
+      console.log('❌ Basic auth falhou:', basicError.response?.status, basicError.response?.data);
     }
+    
+    // Testar com X-API-Key header
+    if (WAHA_API_KEY) {
+      try {
+        const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
+          headers: {
+            'X-API-Key': WAHA_API_KEY,
+            'Content-Type': 'application/json'
+          },
+          timeout: 5000
+        });
+        results.tests.push({
+          type: 'X-API-Key Header',
+          status: 'Sucesso',
+          data: response.data
+        });
+        res.json({ 
+          success: true, 
+          authType: 'X-API-Key Header',
+          data: response.data,
+          results
+        });
+        return;
+      } catch (apiKeyError) {
+        results.tests.push({
+          type: 'X-API-Key Header',
+          status: `Falhou: ${apiKeyError.response?.status} - ${apiKeyError.response?.data?.message || apiKeyError.message}`
+        });
+      }
+    }
+    
+    res.json({ 
+      success: false, 
+      error: 'Todos os tipos de autenticação falharam',
+      results
+    });
   } catch (error) {
     res.json({ 
       success: false, 

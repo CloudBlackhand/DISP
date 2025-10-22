@@ -371,15 +371,22 @@
                     statusDiv.innerHTML = `
                         ✅ Autenticação funcionando!<br>
                         Tipo: ${data.authType}<br>
-                        Sessões encontradas: ${data.data?.length || 0}
+                        Sessões encontradas: ${data.data?.length || 0}<br>
+                        URL: ${data.results?.url || 'N/A'}
                     `;
                 } else {
                     statusDiv.className = 'status error';
                     statusDiv.innerHTML = `
                         ❌ Erro de autenticação:<br>
-                        ${data.error}<br>
-                        Bearer: ${data.bearerError}<br>
-                        Basic: ${data.basicError}
+                        ${data.error}<br><br>
+                        <strong>Detalhes dos testes:</strong><br>
+                        ${data.results?.tests?.map(test => 
+                            `${test.type}: ${test.status}`
+                        ).join('<br>') || 'Nenhum teste realizado'}<br><br>
+                        <strong>Configuração:</strong><br>
+                        URL: ${data.results?.url || 'N/A'}<br>
+                        Bearer Token: ${data.results?.bearerToken || 'N/A'}<br>
+                        Basic Auth: ${data.results?.basicAuth || 'N/A'}
                     `;
                 }
             } catch (error) {
