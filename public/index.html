@@ -214,7 +214,10 @@
                     <button class="btn" onclick="checkSessionStatus()" style="flex: 1;">Status da Sessão</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="testAuth()" style="flex: 1;">Testar Autenticação</button>
                     <button class="btn" onclick="startSession()" style="flex: 1;">Iniciar Sessão</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button class="btn" onclick="setupWebhook()" style="flex: 1;">Configurar Webhook</button>
                 </div>
                 <div id="statusResult" class="status"></div>
@@ -345,6 +348,39 @@
                 } else {
                     statusDiv.className = 'status error';
                     statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Testar autenticação
+        async function testAuth() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Testando autenticação...';
+
+            try {
+                const response = await fetch('/api/test-auth');
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        ✅ Autenticação funcionando!<br>
+                        Tipo: ${data.authType}<br>
+                        Sessões encontradas: ${data.data?.length || 0}
+                    `;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        ❌ Erro de autenticação:<br>
+                        ${data.error}<br>
+                        Bearer: ${data.bearerError}<br>
+                        Basic: ${data.basicError}
+                    `;
                 }
             } catch (error) {
                 statusDiv.className = 'status error';

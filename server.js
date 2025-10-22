@@ -30,11 +30,19 @@ const WAHA_PASSWORD = process.env.WAHA_PASSWORD || 'admin123';
 
 // Função para gerar headers de autenticação
 function getAuthHeaders() {
-  const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
-  return {
-    'Authorization': `Basic ${auth}`,
-    'Content-Type': 'application/json'
-  };
+  // Tentar Bearer token primeiro, depois Basic auth
+  if (WAHA_API_KEY) {
+    return {
+      'Authorization': `Bearer ${WAHA_API_KEY}`,
+      'Content-Type': 'application/json'
+    };
+  } else {
+    const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
+    return {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json'
+    };
+  }
 }
 
 // Função para enviar mensagem via WAHA
@@ -212,6 +220,64 @@ app.get('/api/status', async (req, res) => {
 app.get('/api/session-status', async (req, res) => {
   const result = await checkSessionStatus();
   res.json(result);
+});
+
+// Rota para testar autenticação
+app.get('/api/test-auth', async (req, res) => {
+  try {
+    console.log('🔑 Testando autenticação...');
+    console.log('WAHA_API_KEY:', WAHA_API_KEY ? 'Definido' : 'Não definido');
+    console.log('WAHA_USERNAME:', WAHA_USERNAME);
+    console.log('WAHA_BASE_URL:', WAHA_BASE_URL);
+    
+    // Testar com Bearer token
+    if (WAHA_API_KEY) {
+      try {
+        const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
+          headers: {
+            'Authorization': `Bearer ${WAHA_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        res.json({ 
+          success: true, 
+          authType: 'Bearer Token',
+          data: response.data 
+        });
+        return;
+      } catch (bearerError) {
+        console.log('❌ Bearer token falhou:', bearerError.response?.status);
+      }
+    }
+    
+    // Testar com Basic auth
+    try {
+      const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
+      const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      res.json({ 
+        success: true, 
+        authType: 'Basic Auth',
+        data: response.data 
+      });
+    } catch (basicError) {
+      res.json({ 
+        success: false, 
+        error: 'Ambos os tipos de autenticação falharam',
+        bearerError: WAHA_API_KEY ? 'Bearer token falhou' : 'Bearer token não configurado',
+        basicError: `Basic auth falhou: ${basicError.response?.status}`
+      });
+    }
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
 });
 
 // Webhook para receber notificações do WAHA
