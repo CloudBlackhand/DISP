@@ -28,6 +28,8 @@ WAHA_API_KEY=test-api-key-123
 WAHA_API_URL=https://wahawa-production-a473.up.railway.app
 WAHA_BASE_URL=https://wahawa-production-a473.up.railway.app/
 WAHA_SESSION_NAME=Diego
+WAHA_USERNAME=admin
+WAHA_PASSWORD=admin123
 PORT=3000
 ```
 

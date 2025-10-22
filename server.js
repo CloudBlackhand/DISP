@@ -25,6 +25,17 @@ if (WAHA_BASE_URL.endsWith('/')) {
 }
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
+const WAHA_USERNAME = process.env.WAHA_USERNAME || 'admin';
+const WAHA_PASSWORD = process.env.WAHA_PASSWORD || 'admin123';
+
+// Função para gerar headers de autenticação
+function getAuthHeaders() {
+  const auth = Buffer.from(`${WAHA_USERNAME}:${WAHA_PASSWORD}`).toString('base64');
+  return {
+    'Authorization': `Basic ${auth}`,
+    'Content-Type': 'application/json'
+  };
+}
 
 // Função para enviar mensagem via WAHA
 async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
@@ -33,10 +44,7 @@ async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
       to: phone,
       body: message
     }, {
-      headers: {
-        'Authorization': `Bearer ${WAHA_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+      headers: getAuthHeaders()
     });
     return { success: true, data: response.data };
   } catch (error) {
@@ -51,9 +59,7 @@ async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
 async function checkSessionStatus(session = WAHA_SESSION_NAME) {
   try {
     const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
-      headers: {
-        'Authorization': `Bearer ${WAHA_API_KEY}`
-      }
+      headers: getAuthHeaders()
     });
     return { success: true, data: response.data };
   } catch (error) {
@@ -191,9 +197,7 @@ app.post('/api/upload-contacts', upload.single('file'), (req, res) => {
 app.get('/api/status', async (req, res) => {
   try {
     const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-      headers: {
-        'Authorization': `Bearer ${WAHA_API_KEY}`
-      }
+      headers: getAuthHeaders()
     });
     res.json({ success: true, sessions: response.data });
   } catch (error) {
@@ -255,10 +259,7 @@ app.post('/api/setup-webhook', async (req, res) => {
       url: webhookUrl,
       events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
     }, {
-      headers: {
-        'Authorization': `Bearer ${WAHA_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+      headers: getAuthHeaders()
     });
     
     res.json({ 
@@ -288,10 +289,7 @@ app.post('/api/start-session', async (req, res) => {
         ]
       }
     }, {
-      headers: {
-        'Authorization': `Bearer ${WAHA_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+      headers: getAuthHeaders()
     });
     
     res.json({ success: true, data: response.data });
