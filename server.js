@@ -367,15 +367,53 @@ app.get('/api/qr-code', async (req, res) => {
 
     const sessionStatus = statusResult.data.status;
     
+    // Se a sessão estiver com status FAILED, tentar reiniciar automaticamente
+    if (sessionStatus === 'FAILED') {
+      console.log(`🔄 Sessão com status FAILED, tentando reiniciar...`);
+      try {
+        // Parar a sessão primeiro
+        await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/stop`, {}, {
+          headers: getAuthHeadersWithAuth()
+        });
+        
+        // Aguardar um pouco
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Iniciar novamente
+        await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/start`, {
+          name: WAHA_SESSION_NAME,
+          config: {
+            webhooks: [
+              {
+                url: `${req.protocol}://${req.get('host')}/webhook/waha`,
+                events: ['message', 'session.status']
+              }
+            ]
+          }
+        }, {
+          headers: getAuthHeadersWithAuth()
+        });
+        
+        // Aguardar a sessão entrar no estado correto
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+      } catch (restartError) {
+        return res.json({ 
+          success: false, 
+          error: `Erro ao reiniciar sessão: ${restartError.response?.data?.message || restartError.message}` 
+        });
+      }
+    }
+    
     // Verificar se a sessão está no estado correto para gerar QR code
-    if (sessionStatus !== 'SCAN_QR_CODE' && sessionStatus !== 'OPENING' && sessionStatus !== 'STARTING') {
+    if (sessionStatus !== 'SCAN_QR_CODE' && sessionStatus !== 'OPENING' && sessionStatus !== 'STARTING' && sessionStatus !== 'FAILED') {
       return res.json({ 
         success: false, 
         error: `Sessão não está pronta para QR code. Status atual: ${sessionStatus}. Tente iniciar a sessão primeiro.` 
       });
     }
 
-    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/auth/qr`, {
+    const response = await axios.get(`${WAHA_BASE_URL}/api/${WAHA_SESSION_NAME}/auth/qr`, {
       headers: getAuthHeadersWithAuth()
     });
     
