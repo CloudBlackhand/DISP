@@ -209,7 +209,14 @@
             <!-- Status da Conexão -->
             <div class="section">
                 <h2>📡 Status da Conexão</h2>
-                <button class="btn" onclick="checkStatus()">Verificar Status WAHA</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="checkStatus()" style="flex: 1;">Verificar Status WAHA</button>
+                    <button class="btn" onclick="checkSessionStatus()" style="flex: 1;">Status da Sessão</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="startSession()" style="flex: 1;">Iniciar Sessão</button>
+                    <button class="btn" onclick="setupWebhook()" style="flex: 1;">Configurar Webhook</button>
+                </div>
                 <div id="statusResult" class="status"></div>
             </div>
 
@@ -288,6 +295,90 @@
             } catch (error) {
                 statusDiv.className = 'status error';
                 statusDiv.textContent = `❌ Erro de conexão: ${error.message}`;
+            }
+        }
+
+        // Verificar status da sessão específica
+        async function checkSessionStatus() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Verificando status da sessão...';
+
+            try {
+                const response = await fetch('/api/session-status');
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        ✅ Sessão ativa!<br>
+                        Nome: ${data.data.name || 'N/A'}<br>
+                        Status: ${data.data.status || 'N/A'}<br>
+                        Conectado: ${data.data.connected ? 'Sim' : 'Não'}
+                    `;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro de conexão: ${error.message}`;
+            }
+        }
+
+        // Iniciar sessão WAHA
+        async function startSession() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Iniciando sessão...';
+
+            try {
+                const response = await fetch('/api/start-session', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Sessão iniciada com sucesso!';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Configurar webhook
+        async function setupWebhook() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Configurando webhook...';
+
+            try {
+                const response = await fetch('/api/setup-webhook', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        ✅ Webhook configurado!<br>
+                        URL: ${data.webhookUrl}
+                    `;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
             }
         }
 

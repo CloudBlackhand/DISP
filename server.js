@@ -18,18 +18,37 @@ const upload = multer({ dest: 'uploads/' });
 
 // Configuração da API WAHA
 const WAHA_API_URL = process.env.WAHA_API_URL || 'http://localhost:3000';
+const WAHA_BASE_URL = process.env.WAHA_BASE_URL || process.env.WAHA_API_URL || 'http://localhost:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
+const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
 
 // Função para enviar mensagem via WAHA
-async function sendMessage(phone, message, session = 'default') {
+async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
   try {
-    const response = await axios.post(`${WAHA_API_URL}/api/sessions/${session}/send-message`, {
+    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${session}/send-message`, {
       to: phone,
       body: message
     }, {
       headers: {
         'Authorization': `Bearer ${WAHA_API_KEY}`,
         'Content-Type': 'application/json'
+      }
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    };
+  }
+}
+
+// Função para verificar status da sessão
+async function checkSessionStatus(session = WAHA_SESSION_NAME) {
+  try {
+    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
+      headers: {
+        'Authorization': `Bearer ${WAHA_API_KEY}`
       }
     });
     return { success: true, data: response.data };
@@ -136,7 +155,7 @@ app.post('/api/upload-contacts', upload.single('file'), (req, res) => {
 // Rota para verificar status da sessão WAHA
 app.get('/api/status', async (req, res) => {
   try {
-    const response = await axios.get(`${WAHA_API_URL}/api/sessions`, {
+    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
       headers: {
         'Authorization': `Bearer ${WAHA_API_KEY}`
       }
@@ -150,7 +169,108 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
+// Rota para verificar status da sessão específica
+app.get('/api/session-status', async (req, res) => {
+  const result = await checkSessionStatus();
+  res.json(result);
+});
+
+// Webhook para receber notificações do WAHA
+app.post('/webhook/waha', async (req, res) => {
+  try {
+    const { event, session, payload } = req.body;
+    
+    console.log(`📨 Webhook WAHA recebido: ${event} - Sessão: ${session}`);
+    
+    // Processar diferentes tipos de eventos
+    switch (event) {
+      case 'session.status':
+        console.log(`📱 Status da sessão ${session}: ${payload.status}`);
+        break;
+        
+      case 'message.created':
+        console.log(`💬 Nova mensagem recebida de ${payload.from}: ${payload.body?.substring(0, 50)}...`);
+        break;
+        
+      case 'message.updated':
+        console.log(`📝 Mensagem atualizada: ${payload.id} - Status: ${payload.status}`);
+        break;
+        
+      case 'message.deleted':
+        console.log(`🗑️ Mensagem deletada: ${payload.id}`);
+        break;
+        
+      default:
+        console.log(`🔔 Evento não tratado: ${event}`);
+    }
+    
+    res.json({ success: true, message: 'Webhook processado' });
+  } catch (error) {
+    console.error('❌ Erro no webhook:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Rota para configurar webhook no WAHA
+app.post('/api/setup-webhook', async (req, res) => {
+  try {
+    const webhookUrl = `${req.protocol}://${req.get('host')}/webhook/waha`;
+    
+    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`, {
+      url: webhookUrl,
+      events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
+    }, {
+      headers: {
+        'Authorization': `Bearer ${WAHA_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      webhookUrl,
+      data: response.data 
+    });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Rota para iniciar sessão WAHA
+app.post('/api/start-session', async (req, res) => {
+  try {
+    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/start`, {
+      name: WAHA_SESSION_NAME,
+      config: {
+        webhooks: [
+          {
+            url: `${req.protocol}://${req.get('host')}/webhook/waha`,
+            events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
+          }
+        ]
+      }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${WAHA_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📱 Integração WAHA: ${WAHA_API_URL}`);
+  console.log(`📱 Integração WAHA: ${WAHA_BASE_URL}`);
+  console.log(`🔑 Sessão WAHA: ${WAHA_SESSION_NAME}`);
+  console.log(`🔗 Webhook URL: http://localhost:${PORT}/webhook/waha`);
 });

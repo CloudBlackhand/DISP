@@ -24,8 +24,11 @@ Sistema simples e rápido para envio de mensagens em massa integrado com WAHA, o
 Configure as seguintes variáveis no Railway:
 
 ```
-WAHA_API_URL=https://sua-instancia-waha.com
-WAHA_API_KEY=sua_chave_api_waha
+WAHA_API_KEY=test-api-key-123
+WAHA_API_URL=https://wahawa-production-a473.up.railway.app
+WAHA_BASE_URL=https://wahawa-production-a473.up.railway.app/
+WAHA_SESSION_NAME=Diego
+PORT=3000
 ```
 
 ### 2. Deploy no Railway
@@ -36,10 +39,23 @@ WAHA_API_KEY=sua_chave_api_waha
 
 ## 📱 Como Usar
 
-1. **Verificar Status**: Clique em "Verificar Status WAHA" para confirmar a conexão
-2. **Envio Individual**: Digite o número e mensagem para teste
-3. **Upload de Contatos**: Faça upload de um arquivo CSV com números de telefone
-4. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
+1. **Configurar Sessão**: 
+   - Clique em "Iniciar Sessão" para conectar com o WAHA
+   - Clique em "Configurar Webhook" para receber notificações
+2. **Verificar Status**: Use os botões para verificar conexão e status da sessão
+3. **Envio Individual**: Digite o número e mensagem para teste
+4. **Upload de Contatos**: Faça upload de um arquivo CSV com números de telefone
+5. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
+
+## 🔗 Webhook
+
+O sistema inclui webhook automático que recebe notificações do WAHA:
+- Status da sessão
+- Mensagens recebidas
+- Atualizações de mensagens
+- Mensagens deletadas
+
+URL do webhook: `https://seu-app.railway.app/webhook/waha`
 
 ## 📄 Formato do CSV
 
@@ -71,9 +87,13 @@ npm start
 
 - `GET /` - Interface web
 - `GET /api/status` - Status da conexão WAHA
+- `GET /api/session-status` - Status da sessão específica
+- `POST /api/start-session` - Iniciar sessão WAHA
+- `POST /api/setup-webhook` - Configurar webhook
 - `POST /api/send-single` - Envio individual
 - `POST /api/send-mass` - Envio em massa
 - `POST /api/upload-contacts` - Upload de contatos CSV
+- `POST /webhook/waha` - Webhook para receber notificações do WAHA
 
 ## 🛡️ Segurança
 
