@@ -29,7 +29,7 @@ WAHA_API_URL=https://wahawa-production-a473.up.railway.app
 WAHA_BASE_URL=https://wahawa-production-a473.up.railway.app/
 WAHA_SESSION_NAME=Diego
 WAHA_USERNAME=admin
-WAHA_PASSWORD=admin123
+WAHA_PASSWORD=sua_senha_aqui
 PORT=3000
 ```
 
