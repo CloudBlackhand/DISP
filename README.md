@@ -9,6 +9,11 @@ Sistema simples e rápido para envio de mensagens em massa integrado com WAHA, o
 - ✅ Interface web intuitiva
 - ✅ Controle de delay entre mensagens
 - ✅ Integração completa com WAHA
+- ✅ **NOVO**: Gerenciamento completo de sessão WhatsApp
+- ✅ **NOVO**: Exibição de QR Code para conectar WhatsApp
+- ✅ **NOVO**: Controle de sessão (iniciar, parar, reiniciar)
+- ✅ **NOVO**: Auto-refresh para monitoramento em tempo real
+- ✅ **NOVO**: Status detalhado da sessão
 - ✅ Deploy automático no Railway
 
 ## 📋 Pré-requisitos
@@ -43,14 +48,18 @@ PORT=3000
 1. **Acessar o Sistema**: 
    - Usuário: `admin`
    - Senha: valor da variável `SYSTEM_PASSWORD` (padrão: `admin123`)
-2. **Configurar Sessão**: 
+2. **Gerenciar Sessão WhatsApp**: 
    - Clique em "Iniciar Sessão" para conectar com o WAHA
+   - Clique em "Obter QR Code" para exibir o QR code e conectar seu WhatsApp
+   - Use "Parar Sessão" ou "Reiniciar Sessão" conforme necessário
+   - Ative o "Auto-Refresh" para monitoramento em tempo real
+3. **Configurar Webhook**: 
    - Clique em "Configurar Webhook" para receber notificações
-3. **Verificar Status**: Use os botões para verificar conexão e status da sessão
-4. **Adicionar Contatos**: 
+4. **Verificar Status**: Use os botões para verificar conexão e status detalhado da sessão
+5. **Adicionar Contatos**: 
    - Digite números manualmente (aceita todos os formatos brasileiros)
    - Ou faça upload de um arquivo CSV
-5. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
+6. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
 
 ## 🔗 Webhook
 
@@ -61,6 +70,34 @@ O sistema inclui webhook automático que recebe notificações do WAHA:
 - Mensagens deletadas
 
 URL do webhook: `https://seu-app.railway.app/webhook/waha`
+
+## 📱 Gerenciamento de Sessão WhatsApp
+
+### Funcionalidades Disponíveis:
+
+1. **Iniciar Sessão**: Cria uma nova sessão WhatsApp no WAHA
+2. **Obter QR Code**: Exibe o QR code para conectar seu WhatsApp
+3. **Parar Sessão**: Para a sessão atual do WhatsApp
+4. **Reiniciar Sessão**: Para e inicia novamente a sessão
+5. **Auto-Refresh**: Monitora automaticamente o status da sessão
+6. **Status Detalhado**: Mostra informações completas sobre a sessão
+
+### Como Conectar seu WhatsApp:
+
+1. Clique em "Iniciar Sessão"
+2. Clique em "Obter QR Code"
+3. Escaneie o QR code com seu WhatsApp
+4. A sessão será conectada automaticamente
+5. Use "Auto-Refresh" para monitoramento contínuo
+
+### Status da Sessão:
+
+- **SCANNING**: Aguardando escaneamento do QR code
+- **OPENING**: Conectando ao WhatsApp
+- **PAIRING**: Emparelhando dispositivo
+- **CONNECTED**: Conectado e pronto para uso
+- **FAILED**: Erro na conexão
+- **TIMEOUT**: Tempo esgotado
 
 ## 📄 Formatos de Número Aceitos
 
@@ -101,7 +138,10 @@ npm start
 - `GET /` - Interface web
 - `GET /api/status` - Status da conexão WAHA
 - `GET /api/session-status` - Status da sessão específica
+- `GET /api/qr-code` - **NOVO**: Obter QR code da sessão
 - `POST /api/start-session` - Iniciar sessão WAHA
+- `POST /api/stop-session` - **NOVO**: Parar sessão WAHA
+- `POST /api/restart-session` - **NOVO**: Reiniciar sessão WAHA
 - `POST /api/setup-webhook` - Configurar webhook
 - `POST /api/send-mass` - Envio em massa (com normalização de números)
 - `POST /api/upload-contacts` - Upload de contatos CSV

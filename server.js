@@ -353,6 +353,22 @@ app.post('/api/setup-webhook', async (req, res) => {
   }
 });
 
+// Rota para obter QR code da sessão
+app.get('/api/qr-code', async (req, res) => {
+  try {
+    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/qr`, {
+      headers: getAuthHeadersWithAuth()
+    });
+    
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
 // Rota para iniciar sessão WAHA
 app.post('/api/start-session', async (req, res) => {
   try {
@@ -362,7 +378,58 @@ app.post('/api/start-session', async (req, res) => {
         webhooks: [
           {
             url: `${req.protocol}://${req.get('host')}/webhook/waha`,
-            events: ['message']
+            events: ['message', 'session.status']
+          }
+        ]
+      }
+    }, {
+      headers: getAuthHeadersWithAuth()
+    });
+    
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Rota para parar sessão WAHA
+app.post('/api/stop-session', async (req, res) => {
+  try {
+    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/stop`, {}, {
+      headers: getAuthHeadersWithAuth()
+    });
+    
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// Rota para reiniciar sessão WAHA
+app.post('/api/restart-session', async (req, res) => {
+  try {
+    // Primeiro para a sessão
+    await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/stop`, {}, {
+      headers: getAuthHeadersWithAuth()
+    });
+    
+    // Aguarda um pouco
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Depois inicia novamente
+    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/start`, {
+      name: WAHA_SESSION_NAME,
+      config: {
+        webhooks: [
+          {
+            url: `${req.protocol}://${req.get('host')}/webhook/waha`,
+            events: ['message', 'session.status']
           }
         ]
       }

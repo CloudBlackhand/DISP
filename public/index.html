@@ -196,6 +196,32 @@
         .hidden {
             display: none;
         }
+
+        .status-detail {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .qr-code-container {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
     </style>
 </head>
 <body>
@@ -206,17 +232,36 @@
         </div>
 
         <div class="content">
-            <!-- Status da Conexão -->
+            <!-- Gerenciamento da Sessão WhatsApp -->
             <div class="section">
-                <h2>📡 Status da Conexão</h2>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn" onclick="checkStatus()" style="flex: 1;">Verificar Status WAHA</button>
-                    <button class="btn" onclick="checkSessionStatus()" style="flex: 1;">Status da Sessão</button>
+                <h2>📱 Gerenciamento da Sessão WhatsApp</h2>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn" onclick="checkStatus()" style="flex: 1; min-width: 120px;">Verificar Status WAHA</button>
+                    <button class="btn" onclick="checkSessionStatus()" style="flex: 1; min-width: 120px;">Status da Sessão</button>
+                    <button class="btn" onclick="getQRCode()" style="flex: 1; min-width: 120px;">Obter QR Code</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn" onclick="startSession()" style="flex: 1; min-width: 120px;">Iniciar Sessão</button>
+                    <button class="btn" onclick="stopSession()" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">Parar Sessão</button>
+                    <button class="btn" onclick="restartSession()" style="flex: 1; min-width: 120px; background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);">Reiniciar Sessão</button>
                 </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="btn" onclick="startSession()" style="flex: 1;">Iniciar Sessão</button>
                     <button class="btn" onclick="setupWebhook()" style="flex: 1;">Configurar Webhook</button>
+                    <button class="btn" onclick="toggleAutoRefresh()" style="flex: 1;" id="autoRefreshBtn">Iniciar Auto-Refresh</button>
                 </div>
+                
+                <!-- QR Code Display -->
+                <div id="qrCodeContainer" class="qr-code-container" style="text-align: center; margin: 20px 0; display: none;">
+                    <h3>📱 QR Code para Conectar WhatsApp</h3>
+                    <div id="qrCodeImage" style="background: white; padding: 20px; border-radius: 10px; display: inline-block; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <img id="qrImage" style="max-width: 300px; max-height: 300px;" />
+                    </div>
+                    <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                        Escaneie este QR code com seu WhatsApp para conectar a sessão
+                    </p>
+                    <button class="btn" onclick="hideQRCode()" style="width: auto; margin-top: 10px;">Fechar QR Code</button>
+                </div>
+                
                 <div id="statusResult" class="status"></div>
             </div>
 
@@ -272,6 +317,7 @@
 
     <script>
         let contacts = [];
+        let autoRefreshInterval = null;
 
         // Verificar status da conexão WAHA
         async function checkStatus() {
@@ -309,13 +355,28 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    statusDiv.className = 'status success';
+                    const sessionData = data.data;
+                    const isConnected = sessionData.connected;
+                    const status = sessionData.status;
+                    
+                    statusDiv.className = isConnected ? 'status success' : 'status info';
                     statusDiv.innerHTML = `
-                        ✅ Sessão ativa!<br>
-                        Nome: ${data.data.name || 'N/A'}<br>
-                        Status: ${data.data.status || 'N/A'}<br>
-                        Conectado: ${data.data.connected ? 'Sim' : 'Não'}
+                        ${isConnected ? '✅' : '⏳'} Sessão: ${status}<br>
+                        Nome: ${sessionData.name || 'N/A'}<br>
+                        Conectado: ${isConnected ? '✅ Sim' : '❌ Não'}<br>
+                        ${sessionData.phone ? `Telefone: ${sessionData.phone}<br>` : ''}
+                        ${sessionData.me ? `Usuário: ${sessionData.me.name || sessionData.me.id}<br>` : ''}
+                        Última atualização: ${new Date().toLocaleTimeString()}
                     `;
+                    
+                    // Se conectado, esconder QR code se estiver sendo exibido
+                    if (isConnected && document.getElementById('qrCodeContainer').style.display !== 'none') {
+                        document.getElementById('qrCodeContainer').style.display = 'none';
+                        if (autoRefreshInterval) {
+                            clearInterval(autoRefreshInterval);
+                            autoRefreshInterval = null;
+                        }
+                    }
                 } else {
                     statusDiv.className = 'status error';
                     statusDiv.textContent = `❌ Erro: ${data.error}`;
@@ -352,6 +413,141 @@
             }
         }
 
+
+        // Obter QR Code
+        async function getQRCode() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Obtendo QR Code...';
+
+            try {
+                const response = await fetch('/api/qr-code');
+                const data = await response.json();
+
+                if (data.success && data.data.qr) {
+                    // Mostrar QR Code
+                    const qrContainer = document.getElementById('qrCodeContainer');
+                    const qrImage = document.getElementById('qrImage');
+                    
+                    qrImage.src = `data:image/png;base64,${data.data.qr}`;
+                    qrContainer.style.display = 'block';
+                    
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ QR Code obtido com sucesso! Escaneie com seu WhatsApp.';
+                    
+                    // Auto-refresh do QR code a cada 30 segundos
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                    }
+                    autoRefreshInterval = setInterval(async () => {
+                        const sessionStatus = await fetch('/api/session-status');
+                        const sessionData = await sessionStatus.json();
+                        if (sessionData.success && sessionData.data.connected) {
+                            clearInterval(autoRefreshInterval);
+                            qrContainer.style.display = 'none';
+                            statusDiv.className = 'status success';
+                            statusDiv.textContent = '✅ WhatsApp conectado com sucesso!';
+                        }
+                    }, 30000);
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error || 'QR Code não disponível'}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Parar sessão
+        async function stopSession() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Parando sessão...';
+
+            try {
+                const response = await fetch('/api/stop-session', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Sessão parada com sucesso!';
+                    
+                    // Esconder QR code se estiver sendo exibido
+                    document.getElementById('qrCodeContainer').style.display = 'none';
+                    
+                    // Parar auto-refresh se estiver ativo
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                        autoRefreshInterval = null;
+                    }
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Reiniciar sessão
+        async function restartSession() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Reiniciando sessão...';
+
+            try {
+                const response = await fetch('/api/restart-session', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Sessão reiniciada com sucesso!';
+                    
+                    // Esconder QR code se estiver sendo exibido
+                    document.getElementById('qrCodeContainer').style.display = 'none';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Esconder QR Code
+        function hideQRCode() {
+            document.getElementById('qrCodeContainer').style.display = 'none';
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Toggle Auto-refresh
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                btn.textContent = 'Iniciar Auto-Refresh';
+                btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            } else {
+                autoRefreshInterval = setInterval(checkSessionStatus, 5000);
+                btn.textContent = 'Parar Auto-Refresh';
+                btn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+            }
+        }
 
         // Configurar webhook
         async function setupWebhook() {
