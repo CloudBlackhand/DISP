@@ -57,20 +57,21 @@ function getAuthHeadersWithAuth() {
 // Função para enviar mensagem via WAHA
 async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
   try {
-    const url = `${WAHA_BASE_URL}/api/sessions/${session}/send-message`;
+    const url = `${WAHA_BASE_URL}/api/sendText`;
     console.log(`📤 Enviando mensagem para: ${url}`);
     console.log(`📱 Telefone: ${phone}, Mensagem: ${message.substring(0, 50)}...`);
     
     const response = await axios.post(url, {
-      to: phone,
-      body: message
+      session: session,
+      chatId: `${phone}@c.us`,
+      text: message
     }, {
       headers: getAuthHeadersWithAuth()
     });
     return { success: true, data: response.data };
   } catch (error) {
     console.error(`❌ Erro ao enviar mensagem:`, error.message);
-    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sessions/${session}/send-message`);
+    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sendText`);
     return { 
       success: false, 
       error: error.response?.data?.message || error.message 
@@ -442,15 +443,22 @@ app.post('/webhook/waha', async (req, res) => {
 app.post('/api/setup-webhook', async (req, res) => {
   try {
     const webhookUrl = `${req.protocol}://${req.get('host')}/webhook/waha`;
-    const wahaUrl = `${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`;
+    const wahaUrl = `${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}`;
     
     console.log(`🔗 Configurando webhook:`);
     console.log(`   Webhook URL: ${webhookUrl}`);
     console.log(`   WAHA URL: ${wahaUrl}`);
     
-    const response = await axios.post(wahaUrl, {
-      url: webhookUrl,
-      events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
+    const response = await axios.put(wahaUrl, {
+      name: WAHA_SESSION_NAME,
+      config: {
+        webhooks: [
+          {
+            url: webhookUrl,
+            events: ['message']
+          }
+        ]
+      }
     }, {
       headers: getAuthHeadersWithAuth()
     });
@@ -462,7 +470,7 @@ app.post('/api/setup-webhook', async (req, res) => {
     });
   } catch (error) {
     console.error(`❌ Erro ao configurar webhook:`, error.message);
-    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/webhook`);
+    console.error(`❌ URL tentada: ${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}`);
     res.json({ 
       success: false, 
       error: error.response?.data?.message || error.message 
@@ -479,7 +487,7 @@ app.post('/api/start-session', async (req, res) => {
         webhooks: [
           {
             url: `${req.protocol}://${req.get('host')}/webhook/waha`,
-            events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
+            events: ['message']
           }
         ]
       }
