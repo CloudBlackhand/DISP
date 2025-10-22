@@ -28,6 +28,8 @@ WAHA_API_KEY=test-api-key-123
 WAHA_API_URL=https://wahawa-production-a473.up.railway.app
 WAHA_BASE_URL=https://wahawa-production-a473.up.railway.app/
 WAHA_SESSION_NAME=Diego
+SYSTEM_USERNAME=Diego
+SYSTEM_PASSWORD=Diego123
 PORT=3000
 ```
 
@@ -39,14 +41,15 @@ PORT=3000
 
 ## 📱 Como Usar
 
-1. **Configurar Sessão**: 
+1. **Login**: Use as credenciais configuradas (padrão: Diego/Diego123)
+2. **Configurar Sessão**: 
    - Clique em "Iniciar Sessão" para conectar com o WAHA
    - Clique em "Configurar Webhook" para receber notificações
-2. **Verificar Status**: Use os botões para verificar conexão e status da sessão
-3. **Adicionar Contatos**: 
+3. **Verificar Status**: Use os botões para verificar conexão e status da sessão
+4. **Adicionar Contatos**: 
    - Digite números manualmente (aceita todos os formatos brasileiros)
    - Ou faça upload de um arquivo CSV
-4. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
+5. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
 
 ## 🔗 Webhook
 

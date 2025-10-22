@@ -11,6 +11,35 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Middleware de autenticação simples
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="DISPIDI"');
+    return res.status(401).json({ error: 'Autenticação necessária' });
+  }
+  
+  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+  const [username, password] = credentials.split(':');
+  
+  if (username === SYSTEM_USERNAME && password === SYSTEM_PASSWORD) {
+    next();
+  } else {
+    res.setHeader('WWW-Authenticate', 'Basic realm="DISPIDI"');
+    return res.status(401).json({ error: 'Credenciais inválidas' });
+  }
+}
+
+// Aplicar autenticação em todas as rotas exceto login
+app.use((req, res, next) => {
+  if (req.path === '/login' || req.path === '/') {
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
+
 app.use(express.static('public'));
 
 // Configuração do multer para upload de arquivos
@@ -27,6 +56,10 @@ const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const WAHA_SESSION_NAME = process.env.WAHA_SESSION_NAME || 'default';
 const WAHA_USERNAME = process.env.WAHA_USERNAME || 'admin';
 const WAHA_PASSWORD = process.env.WAHA_PASSWORD || 'admin123';
+
+// Configuração de autenticação do sistema
+const SYSTEM_USERNAME = process.env.SYSTEM_USERNAME || 'Diego';
+const SYSTEM_PASSWORD = process.env.SYSTEM_PASSWORD || 'Diego123';
 
 // Função para gerar headers de autenticação
 function getAuthHeaders() {
@@ -249,17 +282,6 @@ app.get('/api/session-status', async (req, res) => {
   res.json(result);
 });
 
-// Rota para debug das variáveis
-app.get('/api/debug', (req, res) => {
-  res.json({
-    WAHA_BASE_URL,
-    WAHA_API_KEY: WAHA_API_KEY ? 'Configurado' : 'Não configurado',
-    WAHA_SESSION_NAME,
-    WAHA_USERNAME,
-    WAHA_PASSWORD,
-    headers: getAuthHeadersWithAuth()
-  });
-});
 
 // Rota para testar autenticação
 app.get('/api/test-auth', async (req, res) => {
