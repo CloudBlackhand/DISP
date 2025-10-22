@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISPIDI - Disparador de Mensagens</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .contact-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+
+        .contact-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .contact-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+        }
+
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 DISPIDI</h1>
+            <p>Disparador de Mensagens em Massa</p>
+        </div>
+
+        <div class="content">
+            <!-- Status da Conexão -->
+            <div class="section">
+                <h2>📡 Status da Conexão</h2>
+                <button class="btn" onclick="checkStatus()">Verificar Status WAHA</button>
+                <div id="statusResult" class="status"></div>
+            </div>
+
+            <!-- Envio Individual -->
+            <div class="section">
+                <h2>📱 Envio Individual</h2>
+                <div class="form-group">
+                    <label for="singlePhone">Número do Telefone:</label>
+                    <input type="text" id="singlePhone" placeholder="5511999999999" required>
+                </div>
+                <div class="form-group">
+                    <label for="singleMessage">Mensagem:</label>
+                    <textarea id="singleMessage" placeholder="Digite sua mensagem aqui..." required></textarea>
+                </div>
+                <button class="btn" onclick="sendSingle()">Enviar Mensagem</button>
+                <div id="singleResult" class="status"></div>
+            </div>
+
+            <!-- Upload de Contatos -->
+            <div class="section">
+                <h2>📋 Upload de Contatos</h2>
+                <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                    <p>📁 Clique aqui ou arraste um arquivo CSV</p>
+                    <p style="font-size: 14px; color: #666;">Formato: uma coluna com números de telefone</p>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;" onchange="handleFileUpload(this)">
+                </div>
+                <div id="contactsPreview" class="contact-list hidden"></div>
+            </div>
+
+            <!-- Envio em Massa -->
+            <div class="section">
+                <h2>📢 Envio em Massa</h2>
+                <div class="form-group">
+                    <label for="massMessage">Mensagem:</label>
+                    <textarea id="massMessage" placeholder="Digite a mensagem que será enviada para todos os contatos..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="delay">Delay entre mensagens (ms):</label>
+                    <select id="delay">
+                        <option value="500">500ms (Rápido)</option>
+                        <option value="1000" selected>1000ms (Normal)</option>
+                        <option value="2000">2000ms (Lento)</option>
+                        <option value="5000">5000ms (Muito Lento)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="sendMass()" id="massBtn">Iniciar Envio em Massa</button>
+                <div class="progress" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div id="massResult" class="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let contacts = [];
+
+        // Verificar status da conexão WAHA
+        async function checkStatus() {
+            const statusDiv = document.getElementById('statusResult');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Verificando conexão...';
+
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ Conectado! Sessões ativas: ${data.sessions?.length || 0}`;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Erro de conexão: ${error.message}`;
+            }
+        }
+
+        // Enviar mensagem individual
+        async function sendSingle() {
+            const phone = document.getElementById('singlePhone').value;
+            const message = document.getElementById('singleMessage').value;
+            const resultDiv = document.getElementById('singleResult');
+
+            if (!phone || !message) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'status error';
+                resultDiv.textContent = 'Por favor, preencha todos os campos';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'status info';
+            resultDiv.textContent = 'Enviando mensagem...';
+
+            try {
+                const response = await fetch('/api/send-single', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phone, message })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'status success';
+                    resultDiv.textContent = '✅ Mensagem enviada com sucesso!';
+                } else {
+                    resultDiv.className = 'status error';
+                    resultDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'status error';
+                resultDiv.textContent = `❌ Erro: ${error.message}`;
+            }
+        }
+
+        // Processar upload de arquivo
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/upload-contacts', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.contacts) {
+                    contacts = data.contacts;
+                    showContactsPreview();
+                } else {
+                    alert('Erro ao processar arquivo: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Erro: ' + error.message);
+            });
+        }
+
+        // Mostrar preview dos contatos
+        function showContactsPreview() {
+            const preview = document.getElementById('contactsPreview');
+            preview.innerHTML = `<h3>Contatos carregados (${contacts.length}):</h3>`;
+            
+            contacts.slice(0, 10).forEach(contact => {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.textContent = contact;
+                preview.appendChild(div);
+            });
+
+            if (contacts.length > 10) {
+                const div = document.createElement('div');
+                div.className = 'contact-item';
+                div.textContent = `... e mais ${contacts.length - 10} contatos`;
+                preview.appendChild(div);
+            }
+
+            preview.classList.remove('hidden');
+        }
+
+        // Envio em massa
+        async function sendMass() {
+            const message = document.getElementById('massMessage').value;
+            const delay = parseInt(document.getElementById('delay').value);
+            const resultDiv = document.getElementById('massResult');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const massBtn = document.getElementById('massBtn');
+
+            if (!message) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'status error';
+                resultDiv.textContent = 'Por favor, digite a mensagem';
+                return;
+            }
+
+            if (contacts.length === 0) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'status error';
+                resultDiv.textContent = 'Por favor, carregue uma lista de contatos primeiro';
+                return;
+            }
+
+            massBtn.disabled = true;
+            massBtn.textContent = 'Enviando...';
+            progressContainer.style.display = 'block';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'status info';
+            resultDiv.textContent = `Iniciando envio para ${contacts.length} contatos...`;
+
+            try {
+                const response = await fetch('/api/send-mass', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ contacts, message, delay })
+                });
+
+                const data = await response.json();
+
+                progressBar.style.width = '100%';
+
+                if (data.success !== undefined) {
+                    resultDiv.className = 'status success';
+                    resultDiv.innerHTML = `
+                        ✅ Envio concluído!<br>
+                        Total: ${data.total}<br>
+                        Sucessos: ${data.success}<br>
+                        Erros: ${data.errors}
+                    `;
+                } else {
+                    resultDiv.className = 'status error';
+                    resultDiv.textContent = `❌ Erro: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'status error';
+                resultDiv.textContent = `❌ Erro: ${error.message}`;
+            } finally {
+                massBtn.disabled = false;
+                massBtn.textContent = 'Iniciar Envio em Massa';
+            }
+        }
+
+        // Drag and drop para arquivos
+        const fileUpload = document.querySelector('.file-upload');
+        
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('fileInput').files = files;
+                handleFileUpload(document.getElementById('fileInput'));
+            }
+        });
+
+        // Verificar status ao carregar a página
+        window.onload = function() {
+            checkStatus();
+        };
+    </script>
+</body>
+</html>
