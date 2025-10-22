@@ -38,15 +38,7 @@ function getAuthHeaders() {
 
 // Função para gerar headers com autenticação específica
 function getAuthHeadersWithAuth() {
-  // Tentar Bearer token primeiro
-  if (WAHA_API_KEY) {
-    return {
-      'Authorization': `Bearer ${WAHA_API_KEY}`,
-      'Content-Type': 'application/json'
-    };
-  }
-  
-  // Tentar X-API-Key header
+  // Usar X-API-Key header (que sabemos que funciona)
   if (WAHA_API_KEY) {
     return {
       'X-API-Key': WAHA_API_KEY,
@@ -69,7 +61,7 @@ async function sendMessage(phone, message, session = WAHA_SESSION_NAME) {
       to: phone,
       body: message
     }, {
-      headers: getAuthHeaders()
+      headers: getAuthHeadersWithAuth()
     });
     return { success: true, data: response.data };
   } catch (error) {
@@ -233,7 +225,7 @@ app.post('/api/upload-contacts', upload.single('file'), (req, res) => {
 app.get('/api/status', async (req, res) => {
   try {
     const response = await axios.get(`${WAHA_BASE_URL}/api/sessions`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeadersWithAuth()
     });
     res.json({ success: true, sessions: response.data });
   } catch (error) {
@@ -437,7 +429,7 @@ app.post('/api/setup-webhook', async (req, res) => {
       url: webhookUrl,
       events: ['session.status', 'message.created', 'message.updated', 'message.deleted']
     }, {
-      headers: getAuthHeaders()
+      headers: getAuthHeadersWithAuth()
     });
     
     res.json({ 
@@ -467,7 +459,7 @@ app.post('/api/start-session', async (req, res) => {
         ]
       }
     }, {
-      headers: getAuthHeaders()
+      headers: getAuthHeadersWithAuth()
     });
     
     res.json({ success: true, data: response.data });
