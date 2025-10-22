@@ -419,7 +419,7 @@
             const statusDiv = document.getElementById('statusResult');
             statusDiv.style.display = 'block';
             statusDiv.className = 'status info';
-            statusDiv.textContent = 'Obtendo QR Code...';
+            statusDiv.textContent = 'Verificando status da sessão e obtendo QR Code...';
 
             try {
                 const response = await fetch('/api/qr-code');
@@ -452,11 +452,18 @@
                     }, 30000);
                 } else {
                     statusDiv.className = 'status error';
-                    statusDiv.textContent = `❌ Erro: ${data.error || 'QR Code não disponível'}`;
+                    let errorMessage = data.error || 'QR Code não disponível';
+                    
+                    // Verificar se precisa iniciar a sessão primeiro
+                    if (errorMessage.includes('não está pronta para QR code') || errorMessage.includes('Status atual')) {
+                        errorMessage += '<br><br>💡 <strong>Dica:</strong> Clique em "Iniciar Sessão" primeiro, aguarde alguns segundos, e então tente obter o QR Code novamente.';
+                    }
+                    
+                    statusDiv.innerHTML = `❌ Erro: ${errorMessage}`;
                 }
             } catch (error) {
                 statusDiv.className = 'status error';
-                statusDiv.textContent = `❌ Erro: ${error.message}`;
+                statusDiv.textContent = `❌ Erro de conexão: ${error.message}`;
             }
         }
 

@@ -113,13 +113,13 @@ async function checkSessionStatus(session = WAHA_SESSION_NAME) {
     // Tentar sem autenticação primeiro
     let response;
     try {
-      response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
+      response = await axios.get(`${WAHA_BASE_URL}/api/${session}`, {
         headers: getAuthHeaders(),
         timeout: 5000
       });
     } catch (noAuthError) {
       // Se falhar, tentar com autenticação
-      response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${session}`, {
+      response = await axios.get(`${WAHA_BASE_URL}/api/${session}`, {
         headers: getAuthHeadersWithAuth(),
         timeout: 5000
       });
@@ -356,7 +356,26 @@ app.post('/api/setup-webhook', async (req, res) => {
 // Rota para obter QR code da sessão
 app.get('/api/qr-code', async (req, res) => {
   try {
-    const response = await axios.get(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/qr`, {
+    // Primeiro verificar o status da sessão
+    const statusResult = await checkSessionStatus();
+    if (!statusResult.success) {
+      return res.json({ 
+        success: false, 
+        error: `Erro ao verificar status da sessão: ${statusResult.error}` 
+      });
+    }
+
+    const sessionStatus = statusResult.data.status;
+    
+    // Verificar se a sessão está no estado correto para gerar QR code
+    if (sessionStatus !== 'SCAN_QR_CODE' && sessionStatus !== 'OPENING' && sessionStatus !== 'STARTING') {
+      return res.json({ 
+        success: false, 
+        error: `Sessão não está pronta para QR code. Status atual: ${sessionStatus}. Tente iniciar a sessão primeiro.` 
+      });
+    }
+
+    const response = await axios.get(`${WAHA_BASE_URL}/api/${WAHA_SESSION_NAME}/auth/qr`, {
       headers: getAuthHeadersWithAuth()
     });
     
@@ -398,7 +417,7 @@ app.post('/api/start-session', async (req, res) => {
 // Rota para parar sessão WAHA
 app.post('/api/stop-session', async (req, res) => {
   try {
-    const response = await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/stop`, {}, {
+    const response = await axios.post(`${WAHA_BASE_URL}/api/${WAHA_SESSION_NAME}/stop`, {}, {
       headers: getAuthHeadersWithAuth()
     });
     
@@ -415,7 +434,7 @@ app.post('/api/stop-session', async (req, res) => {
 app.post('/api/restart-session', async (req, res) => {
   try {
     // Primeiro para a sessão
-    await axios.post(`${WAHA_BASE_URL}/api/sessions/${WAHA_SESSION_NAME}/stop`, {}, {
+    await axios.post(`${WAHA_BASE_URL}/api/${WAHA_SESSION_NAME}/stop`, {}, {
       headers: getAuthHeadersWithAuth()
     });
     
