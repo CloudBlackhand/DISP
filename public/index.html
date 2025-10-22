@@ -425,12 +425,12 @@
                 const response = await fetch('/api/qr-code');
                 const data = await response.json();
 
-                if (data.success && data.data.qr) {
+                if (data.success && data.data.data) {
                     // Mostrar QR Code
                     const qrContainer = document.getElementById('qrCodeContainer');
                     const qrImage = document.getElementById('qrImage');
                     
-                    qrImage.src = `data:image/png;base64,${data.data.qr}`;
+                    qrImage.src = `data:${data.data.mimetype};base64,${data.data.data}`;
                     qrContainer.style.display = 'block';
                     
                     statusDiv.className = 'status success';
