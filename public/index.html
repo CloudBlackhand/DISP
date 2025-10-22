@@ -220,19 +220,18 @@
                 <div id="statusResult" class="status"></div>
             </div>
 
-            <!-- Envio Individual -->
+            <!-- Adicionar Contatos Manualmente -->
             <div class="section">
-                <h2>📱 Envio Individual</h2>
+                <h2>📱 Adicionar Contatos</h2>
                 <div class="form-group">
-                    <label for="singlePhone">Número do Telefone:</label>
-                    <input type="text" id="singlePhone" placeholder="5511999999999" required>
+                    <label for="manualContacts">Números de Telefone (um por linha):</label>
+                    <textarea id="manualContacts" placeholder="Digite os números em qualquer formato:&#10;(11) 99999-9999&#10;11999999999&#10;+55 11 99999-9999&#10;011 99999-9999" rows="6"></textarea>
+                    <small style="color: #666; font-size: 12px;">
+                        Aceita todos os formatos brasileiros. Todos serão normalizados para +55
+                    </small>
                 </div>
-                <div class="form-group">
-                    <label for="singleMessage">Mensagem:</label>
-                    <textarea id="singleMessage" placeholder="Digite sua mensagem aqui..." required></textarea>
-                </div>
-                <button class="btn" onclick="sendSingle()">Enviar Mensagem</button>
-                <div id="singleResult" class="status"></div>
+                <button class="btn" onclick="addManualContacts()">Adicionar Contatos</button>
+                <div id="manualResult" class="status"></div>
             </div>
 
             <!-- Upload de Contatos -->
@@ -382,45 +381,44 @@
             }
         }
 
-        // Enviar mensagem individual
-        async function sendSingle() {
-            const phone = document.getElementById('singlePhone').value;
-            const message = document.getElementById('singleMessage').value;
-            const resultDiv = document.getElementById('singleResult');
+        // Adicionar contatos manualmente
+        function addManualContacts() {
+            const manualContacts = document.getElementById('manualContacts').value;
+            const resultDiv = document.getElementById('manualResult');
 
-            if (!phone || !message) {
+            if (!manualContacts.trim()) {
                 resultDiv.style.display = 'block';
                 resultDiv.className = 'status error';
-                resultDiv.textContent = 'Por favor, preencha todos os campos';
+                resultDiv.textContent = 'Por favor, digite pelo menos um número';
                 return;
             }
 
-            resultDiv.style.display = 'block';
-            resultDiv.className = 'status info';
-            resultDiv.textContent = 'Enviando mensagem...';
+            // Dividir por linhas e limpar
+            const phoneNumbers = manualContacts
+                .split('\n')
+                .map(phone => phone.trim())
+                .filter(phone => phone.length > 0);
 
-            try {
-                const response = await fetch('/api/send-single', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ phone, message })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    resultDiv.className = 'status success';
-                    resultDiv.textContent = '✅ Mensagem enviada com sucesso!';
-                } else {
-                    resultDiv.className = 'status error';
-                    resultDiv.textContent = `❌ Erro: ${data.error}`;
-                }
-            } catch (error) {
+            if (phoneNumbers.length === 0) {
+                resultDiv.style.display = 'block';
                 resultDiv.className = 'status error';
-                resultDiv.textContent = `❌ Erro: ${error.message}`;
+                resultDiv.textContent = 'Nenhum número válido encontrado';
+                return;
             }
+
+            // Adicionar aos contatos existentes
+            contacts = contacts.concat(phoneNumbers);
+            
+            // Limpar campo
+            document.getElementById('manualContacts').value = '';
+            
+            // Mostrar resultado
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'status success';
+            resultDiv.textContent = `✅ ${phoneNumbers.length} contatos adicionados! Total: ${contacts.length}`;
+            
+            // Atualizar preview
+            showContactsPreview();
         }
 
         // Processar upload de arquivo
@@ -466,6 +464,20 @@
                 div.className = 'contact-item';
                 div.textContent = `... e mais ${contacts.length - 10} contatos`;
                 preview.appendChild(div);
+            }
+
+            // Adicionar botão para limpar contatos
+            if (contacts.length > 0) {
+                const clearBtn = document.createElement('button');
+                clearBtn.textContent = 'Limpar Todos os Contatos';
+                clearBtn.className = 'btn';
+                clearBtn.style.marginTop = '10px';
+                clearBtn.style.background = '#dc3545';
+                clearBtn.onclick = function() {
+                    contacts = [];
+                    preview.classList.add('hidden');
+                };
+                preview.appendChild(clearBtn);
             }
 
             preview.classList.remove('hidden');
@@ -520,7 +532,16 @@
                         ✅ Envio concluído!<br>
                         Total: ${data.total}<br>
                         Sucessos: ${data.success}<br>
-                        Erros: ${data.errors}
+                        Erros: ${data.errors}<br>
+                        <details style="margin-top: 10px;">
+                            <summary>Ver detalhes dos envios</summary>
+                            ${data.results.map(result => 
+                                `<div style="margin: 5px 0; padding: 5px; background: ${result.success ? '#d4edda' : '#f8d7da'}; border-radius: 3px;">
+                                    ${result.original} → ${result.normalized} 
+                                    ${result.success ? '✅' : '❌ ' + result.error}
+                                </div>`
+                            ).join('')}
+                        </details>
                     `;
                 } else {
                     resultDiv.className = 'status error';

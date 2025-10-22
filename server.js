@@ -65,17 +65,34 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Rota para enviar mensagem única
-app.post('/api/send-single', async (req, res) => {
-  const { phone, message } = req.body;
+// Função para normalizar número de telefone brasileiro
+function normalizePhoneNumber(phone) {
+  // Remove todos os caracteres não numéricos
+  let cleanPhone = phone.replace(/\D/g, '');
   
-  if (!phone || !message) {
-    return res.status(400).json({ error: 'Telefone e mensagem são obrigatórios' });
+  // Se começar com 55, mantém
+  if (cleanPhone.startsWith('55')) {
+    return cleanPhone;
   }
-
-  const result = await sendMessage(phone, message);
-  res.json(result);
-});
+  
+  // Se começar com 0, remove o 0 e adiciona 55
+  if (cleanPhone.startsWith('0')) {
+    return '55' + cleanPhone.substring(1);
+  }
+  
+  // Se tem 11 dígitos (DDD + número), adiciona 55
+  if (cleanPhone.length === 11) {
+    return '55' + cleanPhone;
+  }
+  
+  // Se tem 10 dígitos (DDD + número sem 9), adiciona 55
+  if (cleanPhone.length === 10) {
+    return '55' + cleanPhone;
+  }
+  
+  // Retorna como está se não conseguir normalizar
+  return cleanPhone;
+}
 
 // Rota para envio em massa
 app.post('/api/send-mass', async (req, res) => {
@@ -88,16 +105,30 @@ app.post('/api/send-mass', async (req, res) => {
   const results = [];
   let successCount = 0;
   let errorCount = 0;
+  let normalizedContacts = [];
 
+  // Normalizar todos os números primeiro
   for (let i = 0; i < contacts.length; i++) {
     const contact = contacts[i];
     const phone = contact.phone || contact;
     
     if (!phone) continue;
 
-    const result = await sendMessage(phone, message);
+    const normalizedPhone = normalizePhoneNumber(phone);
+    normalizedContacts.push({
+      original: phone,
+      normalized: normalizedPhone
+    });
+  }
+
+  // Enviar mensagens
+  for (let i = 0; i < normalizedContacts.length; i++) {
+    const { original, normalized } = normalizedContacts[i];
+    
+    const result = await sendMessage(normalized, message);
     results.push({
-      phone,
+      original,
+      normalized,
       success: result.success,
       error: result.error
     });
@@ -109,13 +140,13 @@ app.post('/api/send-mass', async (req, res) => {
     }
 
     // Delay entre mensagens para evitar spam
-    if (i < contacts.length - 1) {
+    if (i < normalizedContacts.length - 1) {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 
   res.json({
-    total: contacts.length,
+    total: normalizedContacts.length,
     success: successCount,
     errors: errorCount,
     results

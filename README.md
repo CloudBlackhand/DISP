@@ -43,9 +43,10 @@ PORT=3000
    - Clique em "Iniciar Sessão" para conectar com o WAHA
    - Clique em "Configurar Webhook" para receber notificações
 2. **Verificar Status**: Use os botões para verificar conexão e status da sessão
-3. **Envio Individual**: Digite o número e mensagem para teste
-4. **Upload de Contatos**: Faça upload de um arquivo CSV com números de telefone
-5. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
+3. **Adicionar Contatos**: 
+   - Digite números manualmente (aceita todos os formatos brasileiros)
+   - Ou faça upload de um arquivo CSV
+4. **Envio em Massa**: Configure a mensagem e delay, depois inicie o envio
 
 ## 🔗 Webhook
 
@@ -57,14 +58,22 @@ O sistema inclui webhook automático que recebe notificações do WAHA:
 
 URL do webhook: `https://seu-app.railway.app/webhook/waha`
 
-## 📄 Formato do CSV
+## 📄 Formatos de Número Aceitos
 
-O arquivo CSV deve conter uma coluna com números de telefone no formato internacional:
-```
-5511999999999
-5511888888888
-5511777777777
-```
+O sistema aceita números brasileiros em qualquer formato e os normaliza automaticamente para +55:
+
+### Formatos Aceitos:
+- `(11) 99999-9999`
+- `11999999999`
+- `+55 11 99999-9999`
+- `011 99999-9999`
+- `11 99999-9999`
+
+### Normalização:
+Todos os números são automaticamente convertidos para: `5511999999999`
+
+### CSV:
+O arquivo CSV deve conter uma coluna com números de telefone em qualquer formato brasileiro.
 
 ## 🔧 Desenvolvimento Local
 
@@ -90,8 +99,7 @@ npm start
 - `GET /api/session-status` - Status da sessão específica
 - `POST /api/start-session` - Iniciar sessão WAHA
 - `POST /api/setup-webhook` - Configurar webhook
-- `POST /api/send-single` - Envio individual
-- `POST /api/send-mass` - Envio em massa
+- `POST /api/send-mass` - Envio em massa (com normalização de números)
 - `POST /api/upload-contacts` - Upload de contatos CSV
 - `POST /webhook/waha` - Webhook para receber notificações do WAHA
 
