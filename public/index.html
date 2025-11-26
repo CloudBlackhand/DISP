@@ -298,12 +298,14 @@
                     <textarea id="massMessage" placeholder="Digite a mensagem que será enviada para todos os contatos..." required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="delay">Delay entre mensagens (ms):</label>
+                    <label for="delay">Delay entre mensagens:</label>
                     <select id="delay">
-                        <option value="500">500ms (Rápido)</option>
-                        <option value="1000" selected>1000ms (Normal)</option>
-                        <option value="2000">2000ms (Lento)</option>
-                        <option value="5000">5000ms (Muito Lento)</option>
+                        <option value="5000" selected>5 segundos</option>
+                        <option value="10000">10 segundos</option>
+                        <option value="30000">30 segundos</option>
+                        <option value="60000">1 minuto</option>
+                        <option value="90000">1 minuto e 30 segundos</option>
+                        <option value="120000">2 minutos</option>
                     </select>
                 </div>
                 <button class="btn" onclick="sendMass()" id="massBtn">Iniciar Envio em Massa</button>

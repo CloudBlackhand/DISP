@@ -169,7 +169,7 @@ function normalizePhoneNumber(phone) {
 
 // Rota para envio em massa
 app.post('/api/send-mass', async (req, res) => {
-  const { contacts, message, delay = 1000 } = req.body;
+  const { contacts, message, delay = 5000 } = req.body;
   
   if (!contacts || !Array.isArray(contacts) || !message) {
     return res.status(400).json({ error: 'Lista de contatos e mensagem são obrigatórios' });
