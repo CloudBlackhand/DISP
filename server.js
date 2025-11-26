@@ -138,6 +138,29 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Função para calcular delay variado entre mensagens
+function getVariedDelay(baseDelay) {
+  // Define as faixas de variação baseadas no delay base
+  const variations = {
+    5000: { min: 5000, max: 10000 },      // 5s: varia entre 5-10s
+    10000: { min: 10000, max: 30000 },    // 10s: varia entre 10-30s
+    30000: { min: 30000, max: 60000 },    // 30s: varia entre 30-60s
+    60000: { min: 60000, max: 90000 },    // 60s: varia entre 60-90s
+    90000: { min: 90000, max: 120000 },   // 90s: varia entre 90-120s
+    120000: { min: 120000, max: 180000 }  // 120s: varia entre 120-180s
+  };
+  
+  // Se temos uma variação definida, usa ela
+  if (variations[baseDelay]) {
+    const { min, max } = variations[baseDelay];
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  // Caso contrário, adiciona 20% de variação aleatória
+  const variation = baseDelay * 0.2;
+  return Math.floor(baseDelay + (Math.random() * variation * 2) - variation);
+}
+
 // Função para normalizar número de telefone brasileiro
 function normalizePhoneNumber(phone) {
   // Remove todos os caracteres não numéricos
@@ -212,9 +235,11 @@ app.post('/api/send-mass', async (req, res) => {
       errorCount++;
     }
 
-    // Delay entre mensagens para evitar spam
+    // Delay variado entre mensagens para evitar spam e parecer mais natural
     if (i < normalizedContacts.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const variedDelay = getVariedDelay(delay);
+      console.log(`⏱️ Delay variado: ${variedDelay}ms (base: ${delay}ms)`);
+      await new Promise(resolve => setTimeout(resolve, variedDelay));
     }
   }
 
